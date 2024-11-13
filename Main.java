@@ -25,6 +25,8 @@ interface UserOperation                     // 인터페이스 개념
 
 class UserData implements Serializable {
 
+    //  1
+
     Map<String, List<String>> rentMap = new HashMap<>();
     private String name = "";
     private String id = "";
