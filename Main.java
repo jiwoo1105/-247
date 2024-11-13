@@ -28,7 +28,7 @@ class UserData implements Serializable {
     Map<String, List<String>> rentMap = new HashMap<>();
     private String name = "";
     private String id = "";
-    private String hp = "";
+    private String hp = "234";
     private String cardCompany;
     private String cardNum;
     private int balance = 0;
