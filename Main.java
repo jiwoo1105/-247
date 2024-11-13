@@ -18,8 +18,6 @@ interface UserOperation                     // 인터페이스 개념
 
     void rentedBookView();
 
-    void totalUserView();
-
     void saveUserMapToFile(String fileName);
 
     void loadUserMapFromFile(String fileName);
@@ -28,7 +26,7 @@ interface UserOperation                     // 인터페이스 개념
 class UserData implements Serializable {
 
     Map<String, List<String>> rentMap = new HashMap<>();
-    private String name = "123";
+    private String name = "";
     private String id = "";
     private String hp = "";
     private String cardCompany;
@@ -118,8 +116,9 @@ class UserController implements UserOperation   // 상속 개념
 
         if (!Files.exists(Paths.get(fileName))) {
             userMap.put("admin", new UserData("admin", "관리자", "", "", ""));
-            userMap.put("sim5213", new UserData("sim5213", "김정현", "010-2349", "현대카드", "1234-5678"));
         }
+
+        loadUserMapFromFile(fileName);
     }
 
     @Override            // 오버라이딩 개념
@@ -155,7 +154,7 @@ class UserController implements UserOperation   // 상속 개념
         System.out.print("카드사 입력 → ");
         String cardCompany = br.readLine();
 
-        System.out.print("카드번호 입력 → ");
+        System. out.print("카드번호 입력 → ");
         String cardNum = br.readLine();
 
 
@@ -258,42 +257,14 @@ class UserController implements UserOperation   // 상속 개념
         }
     }
 
-    @Override
-    public void totalUserView() {
-
-        System.out.println();
-        for (String id : userMap.keySet()) {
-            UserData ud = userMap.get(id);
-
-            System.out.println("-------- 고객정보 --------");
-            System.out.printf("이름 : %s\n", ud.getName());
-            System.out.printf("아이디 : %s\n", ud.getId());
-            System.out.printf("전화번호 : %s\n", ud.getHp());
-            System.out.print("대여도서 : \n");
-            int n = 1;
-            Map<String, List<String>> um = ud.getRentMap();
-            for (String key : um.keySet()) {
-                System.out.printf("%d. [제목] %s, [대여 화] ", n++, key);
-                for (String value : um.get(key)) {
-                    System.out.printf("%s화 ", value);
-                }
-                System.out.println();
-            }
-
-            System.out.println("=========================");
-
-        }
-
-    }
-
     // UserMap 프로그램 종료 시 객체 직렬화 저장
     @Override
     public void saveUserMapToFile(String fileName) {
         try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(Paths.get(fileName)))) {
             oos.writeObject(userMap);
-            System.out.println("User 데이터 파일 저장 : " + fileName);
+            //System.out.println("User 데이터 파일 저장 : " + fileName);
         } catch (IOException e) {
-            System.err.println("User 데이터 저장 중 오류 : " + e.getMessage());
+            //System.err.println("User 데이터 저장 중 오류 : " + e.getMessage());
         }
     }
 
@@ -303,11 +274,11 @@ class UserController implements UserOperation   // 상속 개념
     public void loadUserMapFromFile(String fileName) {
         try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(Paths.get(fileName)))) {
             userMap = (Map<String, UserData>) ois.readObject();
-            System.out.println("User 데이터 파일 로드 : " + fileName);
+            //System.out.println("User 데이터 파일 로드 : " + fileName);
         } catch (NoSuchFileException | FileNotFoundException e) {
-            System.err.println("User 데이터 파일이 없습니다. 최초 실행 시 없을 수 있습니다.");
+            //System.err.println("User 데이터 파일이 없습니다. 최초 실행 시 없을 수 있습니다.");
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("User 데이터 로딩 중 오류" + e.getMessage());
+            //System.err.println("User 데이터 로딩 중 오류" + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -324,7 +295,8 @@ class ManagerData implements Serializable {
         return rentInfo;
     }
 
-    public void addRentInfo(String title, String money, String company, String id, String date, String time) {
+    public void addRentInfo(String cid, String title, String money, String company, String id, String date, String time) {
+        rentInfo.add(cid);
         rentInfo.add(title);
         rentInfo.add(company);
         rentInfo.add(id);
@@ -337,7 +309,8 @@ class ManagerData implements Serializable {
         return saleInfo;
     }
 
-    public void addSaleInfo(String title, String money, String company, String id, String date, String time) {
+    public void addSaleInfo(String cid, String title, String money, String company, String id, String date, String time) {
+        saleInfo.add(cid);
         saleInfo.add(title);
         saleInfo.add(company);
         saleInfo.add(id);
@@ -368,6 +341,16 @@ class ManagerController {
     // static으로 선언하여 하나의 인스턴스만 공유하게 함
     static ManagerData managerData;
     static BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    private static final ComicController cc = new ComicController();
+    private static final UserController uc = new UserController();
+
+    public static ComicController getCc() {
+        return cc;
+    }
+
+    public static UserController getUc() {
+        return uc;
+    }
 
     // static 생성자
     static {
@@ -444,7 +427,6 @@ class ManagerController {
     }
 
     public static void manageComicInfo() throws IOException {
-        ComicController cc = new ComicController();
 
         while (true) {
             System.out.println("\n========= 도서 정보 관리 =========");
@@ -455,7 +437,7 @@ class ManagerController {
             System.out.print(">> 원하시는 업무를 선택해주세요 → ");
             int n = Integer.parseInt(br.readLine());
             if (n == 1) {
-                cc.comicAdd();
+                comicAdd();
             } else if (n == 2) {
                 System.out.print("\n정보 변경을 원하시는 만화를 입력해주세요 → ");
                 String title = br.readLine();
@@ -469,11 +451,36 @@ class ManagerController {
                 break;
             }
         }
+
     }
 
+    public static void comicAdd() throws IOException {
+
+        System.out.println("\n※ 신간 정보를 입력해주세요!");
+        System.out.print(">> 제목 → ");
+        String title = br.readLine();
+        if(cc.comicMap.containsKey(title)) {
+            System.out.println("\n툰스토어247에 존재하는 만화입니다!");
+            return;
+        }
+        System.out.print(">> 저자 → ");
+        String author = br.readLine();
+        System.out.print(">> 장르 → ");
+        String genre = br.readLine();
+        System.out.print(">> 명대사 → ");
+        String summary = br.readLine();
+        System.out.print(">> 총 화 → ");
+        int quantity = Integer.parseInt(br.readLine());
+
+        cc.comicMap.put(title, new ComicData(title, author, genre, summary, quantity));
+
+        //System.out.println(comicMap.containsKey(title));
+        cc.saveComicMapToFile("comicData.ser");
+        cc.loadComicMapFromFile("comicData.ser");
+        System.out.printf("\n[%s] 가 정상적으로 입고 되었습니다!\n", title);
+
+    }
     public static void manageComicInventory() throws IOException {
-        ComicController cc = new ComicController();
-        UserController uc = new UserController();
 
         System.out.println("\n========= 도서재고관리 ==========");
         System.out.println("1) 대여관리");
@@ -484,7 +491,7 @@ class ManagerController {
         int n = Integer.parseInt(br.readLine());
 
         if (n == 1) {
-            uc.totalUserView();
+            totalUserView();
             System.out.println("1) 도서반납");
             System.out.println("2) 뒤로가기");
             System.out.println("================================");
@@ -520,18 +527,7 @@ class ManagerController {
                     if (rentStatus.isEmpty()) um.remove(title);
                     else uc.userMap.get(id).setRentIndex(title, rentStatus);
 
-                    System.out.printf("%s님의 대여 만화 : ", uc.userMap.get(id).getId());
-
-                    if (uc.userMap.get(id).getRentIndex(title).isEmpty()) {
-                        System.out.println(" - ");
-                    } else {
-                        for (String name : um.keySet())
-                            System.out.printf("%s, ", name);
-                        for (String idx : uc.userMap.get(id).getRentIndex(title)) {
-                            System.out.print(idx + "화 ");
-                        }
-                        System.out.println("\n---------------------------------");
-                    }
+                    System.out.println("\n반납이 완료 되었습니다!\n");
                 }
             }
 
@@ -539,31 +535,60 @@ class ManagerController {
             System.out.print("\n추가 입고하실 만화를 입력해주세요 → ");
             String title = br.readLine();
             if(cc.comicMap.containsKey(title)){
-            ComicData comic = cc.comicMap.get(title);
-            ManagerController.fillBook(comic);}
+                ComicData comic = cc.comicMap.get(title);
+                ManagerController.fillBook(comic);}
             else System.out.println("\n툰스토어247에 존재하지 않는 만화입니다!\n");
         }
         else
         {
             System.out.println();
         }
+
     }
 
+    public static void totalUserView() {
+
+        System.out.println();
+        for (String id : uc.userMap.keySet()) {
+            if(id.equals("admin"))
+                continue;
+
+            UserData ud = uc.userMap.get(id);
+
+            System.out.println("-------- 고객정보 --------");
+            System.out.printf("이름 : %s\n", ud.getName());
+            System.out.printf("아이디 : %s\n", ud.getId());
+            System.out.printf("전화번호 : %s\n", ud.getHp());
+            System.out.print("대여도서 : \n");
+            int n = 1;
+            Map<String, List<String>> um = ud.getRentMap();
+            for (String key : um.keySet()) {
+                System.out.printf("%d. [제목] %s, [대여 화] ", n++, key);
+                for (String value : um.get(key)) {
+                    System.out.printf("%s화 ", value);
+                }
+                System.out.println();
+            }
+
+            System.out.println("=========================");
+
+        }
+
+    }
     public static void fillBook(ComicData comic) throws IOException {
         int n = 1;
 
-        int[] arr = comic.getSellBookStatus();
         System.out.print("현재 재고 : ");
-        for (int num : arr)
-            System.out.printf("%d권[%s] ", n++, num);
+        for (int num : comic.getSellBookStatus())
+            System.out.printf("%d화[%s] ", n++, num);
         System.out.print("\n추가 입고 원하시는 화를 입력해주세요 → ");
         int num1 = Integer.parseInt(br.readLine());
         System.out.print("추가할 수량을 입력하세요 → ");
         int num2 = Integer.parseInt(br.readLine());
-        arr[num1 - 1] += num2;
-        System.out.println("=================================");
-        System.out.printf("%s의 %d화가 %d권 만큼 입고되었습니다 !!\n\n", comic.getTitle(), num1, num2);
-
+        comic.getSellBookStatus()[num1-1]+=num2;
+        System.out.printf("\n%s의 %d화가 %d권 만큼 입고되었습니다 !!\n\n", comic.getTitle(), num1, num2);
+        cc.saveComicMapToFile("comicData.ser");
+        cc.loadComicMapFromFile("comicData.ser");
     }
 
     private static void changeComicInfo(ComicData comic) throws IOException {
@@ -597,7 +622,7 @@ class ManagerController {
         System.out.println("\n내용 변경이 완료 되었습니다!!");
 
     }
-    
+
     public static void logView() throws IOException {
         while (true) {
             System.out.println("\n========== 매출확인 ============");
@@ -621,8 +646,8 @@ class ManagerController {
             }
         }
     }
-    
 
+    static  Scanner sc = new Scanner(System.in);
     // 대여 로그 보기
     private static void rentLog() {
         int n = 0;
@@ -630,11 +655,13 @@ class ManagerController {
         for (String str : managerData.getRentInfo()) {
             System.out.print(str + " ");
             n++;
-            if (n % 6 == 0) System.out.println();
+            if (n % 7 == 0) System.out.println();
         }
         System.out.println("---------------------------------");
         System.out.println("대여 매출 : " + managerData.getRent());
         System.out.println("=================================");
+        System.out.print(">> 뒤로가기는 아무키 입력 → ");
+        sc.next();
     }
 
     // 판매 로그 보기
@@ -644,29 +671,33 @@ class ManagerController {
         for (String str : managerData.getSaleInfo()) {
             System.out.print(str + " ");
             n++;
-            if (n % 6 == 0) System.out.println();
+            if (n % 7 == 0) System.out.println();
         }
         System.out.println("---------------------------------");
         System.out.println("판매 매출 : " + managerData.getSale());
         System.out.println("=================================");
+        System.out.print(">> 뒤로가기는 아무키 입력 → ");
+        sc.next();
     }
 
     // 전체 로그 보기
     private static void totalLog() {
-        System.out.println("\n=================================");
+        System.out.println("\n========== 매출 확인 ===========");
         System.out.println("대여 매출 : " + managerData.getRent());
         System.out.println("판매 매출 : " + managerData.getSale());
         System.out.println("총 매출 : " + (managerData.getRent() + managerData.getSale()));
         System.out.println("=================================");
+        System.out.print(">> 뒤로가기는 아무키 입력 → ");
+        sc.next();
     }
 
     // 파일에 ManagerData 객체 저장
     public static void saveManagerDataToFile(String fileName) {
         try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(Paths.get(fileName)))) {
             oos.writeObject(managerData);
-            System.out.println("Manager 데이터 파일 저장 : " + fileName);
+            //System.out.println("Manager 데이터 파일 저장 : " + fileName);
         } catch (IOException e) {
-            System.err.println("Manager 데이터 저장 중 오류 : " + e.getMessage());
+            //System.err.println("Manager 데이터 저장 중 오류 : " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -675,11 +706,11 @@ class ManagerController {
     public static void loadManagerDataFromFile(String fileName) {
         try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(Paths.get(fileName)))) {
             managerData = (ManagerData) ois.readObject();
-            System.out.println("Manager 데이터 파일 로드 : " + fileName);
+            //System.out.println("Manager 데이터 파일 로드 : " + fileName);
         } catch (NoSuchFileException | FileNotFoundException e) {
-            System.err.println("Manager 데이터 파일이 없습니다. 최초 실행 시 없을 수 있습니다.");
+            //System.err.println("Manager 데이터 파일이 없습니다. 최초 실행 시 없을 수 있습니다.");
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Manager 데이터 로딩 중 오류" + e.getMessage());
+            //System.err.println("Manager 데이터 로딩 중 오류" + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -777,8 +808,6 @@ abstract class ComicOperation {
 
     public abstract void recommendComic();
 
-    public abstract void comicAdd() throws IOException;
-
     public abstract void saveComicMapToFile(String fileName);
 
     public abstract void loadComicMapFromFile(String fileName);
@@ -827,6 +856,8 @@ class ComicController extends ComicOperation {
             comicMap.put("란마 1/2", new ComicData("란마 1/2", "타카하시 루미코", "코미디", "아.. 안경... 이거지!", 7));
             comicMap.put("원피스", new ComicData("원피스", "오다 에이치로", "액션", "나는 해적왕이 될꺼라고요!", 6));
         }
+
+        loadComicMapFromFile(fileName);
     }
 
     // 전체 만화 목록 출력
@@ -862,6 +893,7 @@ class ComicController extends ComicOperation {
             Collections.sort(comedy);
             Collections.sort(thriller);
             Collections.sort(fantasy);
+
         }
         print();
     }
@@ -981,7 +1013,7 @@ class ComicController extends ComicOperation {
             comic.setRentedBookStatus(tmp);
 
             ManagerController.managerData.setRent(1000);
-            ManagerController.managerData.addRentInfo(title, "1000원", uc.getCardCompany(), uc.getCardNum(), now.toString(), time.toString());
+            ManagerController.managerData.addRentInfo(uc.getId(),title, "1000원", uc.getCardCompany(), uc.getCardNum(), now.toString(), time.toString());
             uc.setBalance(-1000);
             System.out.printf("\n%d화의 대여가 완료 되었습니다!\n반납 일을 지켜주세요!\n\n", num);
             rentStatus.add(Integer.toString(num));
@@ -1020,7 +1052,7 @@ class ComicController extends ComicOperation {
         } else {
             tmp[num - 1]--;
             ManagerController.managerData.setSale(5000);
-            ManagerController.managerData.addSaleInfo(title, "5000원", uc.getCardCompany(), uc.getCardNum(), now.toString(), time.toString());
+            ManagerController.managerData.addSaleInfo(uc.getId(),title, "5000원", uc.getCardCompany(), uc.getCardNum(), now.toString(), time.toString());
             uc.setBalance(-5000);
             System.out.printf("\n%d화의 구매가 완료 되었습니다!\n\n", num);
         }
@@ -1028,26 +1060,6 @@ class ComicController extends ComicOperation {
 
     }
 
-    @Override
-    public void comicAdd() throws IOException {
-
-        System.out.println("\n※ 신간 정보를 입력해주세요!");
-        System.out.print(">> 제목 → ");
-        String title = br.readLine();
-        System.out.print(">> 저자 → ");
-        String author = br.readLine();
-        System.out.print(">> 장르 → ");
-        String genre = br.readLine();
-        System.out.print(">> 명대사 → ");
-        String summary = br.readLine();
-        System.out.print(">> 총 화 → ");
-        int quantity = Integer.parseInt(br.readLine());
-
-        comicMap.put(title, new ComicData(title, author, genre, summary, quantity));
-
-        System.out.printf("\n[%s] 가 정상적으로 입고 되었습니다!\n", title);
-
-    }
 
     // 오늘의 추천 만화 출력 로직 구현
     @Override
@@ -1069,10 +1081,10 @@ class ComicController extends ComicOperation {
     public void saveComicMapToFile(String fileName) {
         try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(Paths.get(fileName)))) {
             oos.writeObject(comicMap);
-            System.out.println("Comic 데이터 파일 저장 : " + fileName);
+            //System.out.println("Comic 데이터 파일 저장 : " + fileName);
         } catch (IOException e) {
-            System.err.println("Comic 데이터 저장 중 오류 : " + e.getMessage());
-            System.out.println(e);
+            //System.err.println("Comic 데이터 저장 중 오류 : " + e.getMessage());
+            //System.out.println(e);
         }
     }
 
@@ -1081,11 +1093,11 @@ class ComicController extends ComicOperation {
     public void loadComicMapFromFile(String fileName) {
         try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(Paths.get(fileName)))) {
             comicMap = (Map<String, ComicData>) ois.readObject();
-            System.out.println("Comic 데이터 파일 로드 : " + fileName);
+            //System.out.println("Comic 데이터 파일 로드 : " + fileName);
         } catch (NoSuchFileException | FileNotFoundException e) {
-            System.err.println("Comic 데이터 파일이 없습니다. 최초 실행 시 없을 수 있습니다.");
+            //System.err.println("Comic 데이터 파일이 없습니다. 최초 실행 시 없을 수 있습니다.");
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Comic 데이터 로딩 중 오류" + e.getMessage());
+            // System.err.println("Comic 데이터 로딩 중 오류" + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1096,14 +1108,8 @@ class ToonStore247 {
     static String accessedID;
     // ManagerController mc = new ManagerController();
     // ManagerController 는 하나로 공유해야 하니 Static으로 선언
-    ComicController cc = new ComicController();
-    UserController uc = new UserController();
-
-    // UserData 초기 로딩 코드
-    public void initData() {
-        uc.loadUserMapFromFile("userData.ser");
-        cc.loadComicMapFromFile("comicData.ser");
-    }
+    ComicController cc = ManagerController.getCc();
+    UserController uc = ManagerController.getUc();
 
     public void homeMenu() {
 
@@ -1113,6 +1119,10 @@ class ToonStore247 {
             switch (n) {
                 case 1:
                     accessedID = uc.login();
+
+                    uc.loadUserMapFromFile("userData.ser");
+                    cc.loadComicMapFromFile("comicData.ser");
+                    ManagerController.loadManagerDataFromFile("managerData.ser");
                     if (accessedID.equals("admin")) {
                         managerMenu();
                     }
@@ -1124,7 +1134,10 @@ class ToonStore247 {
                     }
                     break;
                 case 2:
-                        uc.signUp();
+                    uc.signUp();
+                    uc.saveUserMapToFile("userData.ser");
+                    cc.saveComicMapToFile("comicData.ser");
+                    ManagerController.saveManagerDataToFile("managerData.ser");
                     break;
                 case 3:
                     uc.saveUserMapToFile("userData.ser");
@@ -1139,7 +1152,7 @@ class ToonStore247 {
     }
 
     public void customerMenu() {
-        
+
         UserData ud = uc.userMap.get(accessedID);
 
         System.out.printf("오늘은 %s | [%s님 환영합니다!]\n", LocalDate.now(), ud.getName());
@@ -1167,8 +1180,11 @@ class ToonStore247 {
                     break;
                 case 5:
                     System.out.println();
-                    homeMenu();
+                    uc.saveUserMapToFile("userData.ser");
+                    cc.saveComicMapToFile("comicData.ser");
+                    ManagerController.saveManagerDataToFile("managerData.ser");
                     accessedID = "";
+                    homeMenu();
                     break;
                 case 6:
                     uc.saveUserMapToFile("userData.ser");
@@ -1197,6 +1213,7 @@ class ToonStore247 {
                     managerMenu();
                     break;
 
+
                 case 2:
                     ManagerController.manageComicInventory();
                     managerMenu();
@@ -1208,6 +1225,9 @@ class ToonStore247 {
                     break;
                 case 4:
                     System.out.println();
+                    uc.saveUserMapToFile("userData.ser");
+                    cc.saveComicMapToFile("comicData.ser");
+                    ManagerController.saveManagerDataToFile("managerData.ser");
                     homeMenu();
                     accessedID = "";
                     break;
@@ -1230,8 +1250,6 @@ public class Main {
 
         ToonStore247 ob = new ToonStore247();
         // UserData 프로그램 시작 시 로딩
-        ob.initData();
         while (true) ob.homeMenu();
     }
 }
-
